@@ -6,19 +6,25 @@
     <title>Color Chart</title>
     <style>
         .color-box {
-            width: 100px;
-            height: 100px;
+            width: 90px;
+            height: 90px;
             display: inline-block;
             margin: 10px;
             cursor: pointer;
+            padding: 10px;
+        }
+        .selected {
+            border: 10px solid white;
+            padding: 0px;
         }
     </style>
 </head>
-<body style="background-color: black;"></body>
+<body style="background-color: black;">
     <style>
         #brightness-slider {
-            width: 100%;
+            width: 80%;
             height: 100px;
+            margin-inline: 10%;
         }
     </style>
     <div id="color-chart"></div>
@@ -26,20 +32,19 @@
     <script>
         const colors = [
             'red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink', 'brown', 'black', 'white', 'gray', 'cyan', 'magenta', 'maroon', 'olive', 'lime', 'teal', 'navy', 'fuchsia', 'aqua', 'silver', 'gold', 'beige', 'coral', 'indigo', 'ivory', 'khaki', 'lavender', 'limegreen', 'maroon', 'navy', 'olive', 'plum', 'salmon', 'sienna', 'tan', 'turquoise', 'violet', 'wheat'
-            ];
+        ];
         const brightnessSlider = document.createElement('input');
         brightnessSlider.type = 'range';
         brightnessSlider.min = '0';
         brightnessSlider.max = '100';
-        brightnessSlider.value = '100';
+        brightnessSlider.value = '70';
         brightnessSlider.id = 'brightness-slider';
         document.body.insertBefore(brightnessSlider, document.getElementById('color-chart'));
 
         brightnessSlider.addEventListener('input', () => {
             const brightness = brightnessSlider.value / 100;
             document.querySelectorAll('.color-box').forEach(box => {
-            const color = box.style.backgroundColor;
-            box.style.filter = `brightness(${brightness})`;
+                box.style.filter = `brightness(${brightness})`;
             });
         });
 
@@ -50,11 +55,14 @@
             colorBox.className = 'color-box';
             colorBox.style.backgroundColor = color;
             colorBox.addEventListener('click', () => {
+                colorBox.classList.toggle('selected');
+                const selectedColors = Array.from(document.querySelectorAll('.color-box.selected')).map(box => box.style.backgroundColor);
                 const brightness = brightnessSlider.value;
-                alert(`You clicked on ${color} with brightness ${brightness}%`);
+                alert(`Selected colors: ${selectedColors.join(', ')} with brightness ${brightness}%`);
             });
             colorChart.appendChild(colorBox);
         });
     </script>
+
 </body>
 </html>
