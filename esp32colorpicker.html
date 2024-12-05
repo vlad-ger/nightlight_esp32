@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Chart</title>
+    <style>
+        .color-box {
+            width: 100px;
+            height: 100px;
+            display: inline-block;
+            margin: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body style="background-color: black;"></body>
+    <style>
+        #brightness-slider {
+            width: 100%;
+            height: 100px;
+        }
+    </style>
+    <div id="color-chart"></div>
+
+    <script>
+        const colors = [
+            'red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink', 'brown', 'black', 'white', 'gray', 'cyan', 'magenta', 'maroon', 'olive', 'lime', 'teal', 'navy', 'fuchsia', 'aqua', 'silver', 'gold', 'beige', 'coral', 'indigo', 'ivory', 'khaki', 'lavender', 'limegreen', 'maroon', 'navy', 'olive', 'plum', 'salmon', 'sienna', 'tan', 'turquoise', 'violet', 'wheat'
+            ];
+        const brightnessSlider = document.createElement('input');
+        brightnessSlider.type = 'range';
+        brightnessSlider.min = '0';
+        brightnessSlider.max = '100';
+        brightnessSlider.value = '100';
+        brightnessSlider.id = 'brightness-slider';
+        document.body.insertBefore(brightnessSlider, document.getElementById('color-chart'));
+
+        brightnessSlider.addEventListener('input', () => {
+            const brightness = brightnessSlider.value / 100;
+            document.querySelectorAll('.color-box').forEach(box => {
+            const color = box.style.backgroundColor;
+            box.style.filter = `brightness(${brightness})`;
+            });
+        });
+
+        const colorChart = document.getElementById('color-chart');
+
+        colors.forEach(color => {
+            const colorBox = document.createElement('div');
+            colorBox.className = 'color-box';
+            colorBox.style.backgroundColor = color;
+            colorBox.addEventListener('click', () => {
+                const brightness = brightnessSlider.value;
+                alert(`You clicked on ${color} with brightness ${brightness}%`);
+            });
+            colorChart.appendChild(colorBox);
+        });
+    </script>
+</body>
+</html>
