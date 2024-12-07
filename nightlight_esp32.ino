@@ -20,8 +20,13 @@ IPAddress subnet(255, 255, 255, 0);
 ESP8266WebServer server(80);
 
 int fade = 500;
-bool stopFlag = false;
-bool running = false;
+bool run_color = false;
+bool run_rainbow = false;
+unsigned long lastTime = 0;
+uint16_t i = 0;
+uint16_t j = 0;
+DynamicJsonDocument doc(2048);
+JsonArray colorArray = doc.to<JsonArray>();
 
 void setup() {
   Serial.begin(115200);  
@@ -43,7 +48,6 @@ void setup() {
   server.on("/fade", handleSetFade);
   server.on("/brightness", handleSetBrightness);
   server.on("/rainbow", rainbowFade);
-  server.on("/stop", handleStop);
   server.begin();
   Serial.println("HTTP server started");
   ArduinoOTA.onStart([]() {
@@ -159,7 +163,7 @@ void handleRoot() {
         });\
         const fadeSlider = document.createElement('input');\
         fadeSlider.type = 'range';\
-        fadeSlider.min = '25';\
+        fadeSlider.min = '0';\
         fadeSlider.max = '500';\
         fadeSlider.value = '500';\
         fadeSlider.id = 'fade-slider';\
@@ -193,12 +197,6 @@ void handleRoot() {
         rainbowButton.addEventListener('click', () => {\
             clearTimeout(rainbowTimeout);\
             rainbowTimeout = setTimeout(() => {\
-                fetch('http://192.168.72.200/stop', {\
-                    method: 'POST'\
-                })\
-                .then(response => response.json())\
-                .then(data => console.log('Success:', data))\
-                .catch((error) => console.error('Error:', error));\
                 fetch('http://192.168.72.200/rainbow', {\
                     method: 'POST',\
                     headers: {\
@@ -218,18 +216,12 @@ void handleRoot() {
             colorBox.style.backgroundColor = color;\
             let colorTimeout;\
             colorBox.addEventListener('click', () => {\
-                if (document.querySelectorAll('.color-box.selected').length < 5 || colorBox.classList.contains('selected')) {\
+                if (document.querySelectorAll('.color-box.selected').length < 10 || colorBox.classList.contains('selected')) {\
                     colorBox.classList.toggle('selected');\
                     const selectedColors = Array.from(document.querySelectorAll('.color-box.selected')).map(box => box.style.backgroundColor);\
                     clearTimeout(colorTimeout);\
                     if (selectedColors.length > 0) {\
                         colorTimeout = setTimeout(() => {\
-                            fetch('http://192.168.72.200/stop', {\
-                                method: 'POST'\
-                            })\
-                            .then(response => response.json())\
-                            .then(data => console.log('Success:', data))\
-                            .catch((error) => console.error('Error:', error));\
                             fetch('http://192.168.72.200/colors', {\
                                 method: 'POST',\
                                 headers: {\
@@ -254,25 +246,9 @@ void handleRoot() {
 
 void rainbowFade() {
   if (server.hasArg("plain")) {
+    run_rainbow = true;
+    run_color = false;
     server.send(200, "text/plain", "Rainbow fade started");
-    uint16_t i, j;
-    while (true) {
-      running = true;
-      for (j = 0; j < 256; j++) {
-        for (i = 0; i < strip.numPixels(); i++) {
-          strip.setPixelColor(i, Wheel((i + j) & 255));
-          strip.show();
-          if (stopFlag) {
-            stopFlag = false;
-            running = false;
-            return;
-          }
-          delay(fade);
-          server.handleClient();
-          yield();
-        }
-      }
-    }
   } else {
     server.send(400, "text/plain", "Invalid arguments");
   }
@@ -293,31 +269,12 @@ uint32_t Wheel(byte WheelPos) {
 
 void handleSetColor() {
   if (server.hasArg("plain")) {
-    server.send(200, "text/plain", "Colors set");
     String colors = server.arg("plain");
-    DynamicJsonDocument doc(1024);
     deserializeJson(doc, colors);
-    JsonArray colorArray = doc["colors"];
-    while (true) {
-      running = true;
-      for (int i = 0; i < colorArray.size(); i++) {
-        String colorStr = colorArray[i];
-        int r, g, b;
-        sscanf(colorStr.c_str(), "rgb(%d,%d,%d)", &r, &g, &b);
-        for (int j = 0; j < strip.numPixels(); j++) {
-          strip.setPixelColor(j, strip.Color(r, g, b));
-          strip.show();
-          if (stopFlag) {
-            stopFlag = false;
-            running = false;
-            return;
-          }
-          delay(fade);
-          server.handleClient();
-          yield();
-        }
-      }
-    }
+    colorArray = doc["colors"];
+    run_color = true;
+    run_rainbow = false;
+    server.send(200, "text/plain", "Colors set");
   } else {
     server.send(400, "text/plain", "Invalid arguments");
   }
@@ -342,24 +299,47 @@ void handleSetBrightness() {
     deserializeJson(doc, brightnessData);
     int brightness = doc["brightness"];
     strip.setBrightness(brightness);
-    strip.show();
     server.send(200, "text/plain", "Brightness set");
   } else {
     server.send(400, "text/plain", "Invalid arguments");
   }
 }
 
-void handleStop() {
-  if (running) {
-    stopFlag = true;
-    server.send(200, "text/plain", "Stopped");
-  } else {
-    server.send(400, "text/plain", "Nothing to stop");
-  }
-}
-
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();
+  if (run_rainbow && (millis() - lastTime > fade)) {
+    lastTime = millis();
+    if (j < 256) {
+      if (i < strip.numPixels()) {
+        strip.setPixelColor(i, Wheel((i + j) & 255));
+        strip.show();
+        i++;
+      } else if (i >= strip.numPixels()) {
+        i = 0;
+        j++;
+      }
+    } else if (j >= 256) {
+      j = 0;
+    }
+  }
+  else if (run_color && (millis() - lastTime > fade)) {
+    lastTime = millis();
+    if (i < colorArray.size()) {
+      String colorStr = colorArray[i];
+      int r, g, b;
+      sscanf(colorStr.c_str(), "rgb(%d,%d,%d)", &r, &g, &b);
+      if (j < strip.numPixels()) {
+        strip.setPixelColor(j, strip.Color(r, g, b));
+        strip.show();
+        j++;
+      } else if (j >= strip.numPixels()) {
+        j = 0;
+        i++;
+      }
+    } else if (i >= colorArray.size()) {
+      i = 0;
+    }
+  } 
 }
 
