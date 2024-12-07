@@ -222,24 +222,26 @@ void handleRoot() {
                     colorBox.classList.toggle('selected');\
                     const selectedColors = Array.from(document.querySelectorAll('.color-box.selected')).map(box => box.style.backgroundColor);\
                     clearTimeout(colorTimeout);\
-                    colorTimeout = setTimeout(() => {\
-                        fetch('http://192.168.72.200/stop', {\
-                            method: 'POST'\
-                        })\
-                        .then(response => response.json())\
-                        .then(data => console.log('Success:', data))\
-                        .catch((error) => console.error('Error:', error));\
-                        fetch('http://192.168.72.200/colors', {\
-                            method: 'POST',\
-                            headers: {\
-                                'Content-Type': 'application/json'\
-                            },\
-                            body: JSON.stringify({ colors: selectedColors})\
-                        })\
-                        .then(response => response.json())\
-                        .then(data => console.log('Success:', data))\
-                        .catch((error) => console.error('Error:', error));\
-                    }, 300);\
+                    if (selectedColors.length > 0) {\
+                        colorTimeout = setTimeout(() => {\
+                            fetch('http://192.168.72.200/stop', {\
+                                method: 'POST'\
+                            })\
+                            .then(response => response.json())\
+                            .then(data => console.log('Success:', data))\
+                            .catch((error) => console.error('Error:', error));\
+                            fetch('http://192.168.72.200/colors', {\
+                                method: 'POST',\
+                                headers: {\
+                                    'Content-Type': 'application/json'\
+                                },\
+                                body: JSON.stringify({ colors: selectedColors})\
+                            })\
+                            .then(response => response.json())\
+                            .then(data => console.log('Success:', data))\
+                            .catch((error) => console.error('Error:', error));\
+                        }, 300);\
+                    }\
                 }\
             });\
             colorChart.appendChild(colorBox);\
@@ -291,6 +293,7 @@ uint32_t Wheel(byte WheelPos) {
 
 void handleSetColor() {
   if (server.hasArg("plain")) {
+    server.send(200, "text/plain", "Colors set");
     String colors = server.arg("plain");
     DynamicJsonDocument doc(1024);
     deserializeJson(doc, colors);
@@ -350,6 +353,8 @@ void handleStop() {
   if (running) {
     stopFlag = true;
     server.send(200, "text/plain", "Stopped");
+  } else {
+    server.send(400, "text/plain", "Nothing to stop");
   }
 }
 
