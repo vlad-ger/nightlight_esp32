@@ -25,7 +25,7 @@ bool run_rainbow = false;
 unsigned long lastTime = 0;
 uint16_t i = 0;
 uint16_t j = 0;
-DynamicJsonDocument doc(2048);
+DynamicJsonDocument doc(1024);
 JsonArray colorArray = doc.to<JsonArray>();
 
 void setup() {
@@ -163,7 +163,7 @@ void handleRoot() {
         });\
         const fadeSlider = document.createElement('input');\
         fadeSlider.type = 'range';\
-        fadeSlider.min = '0';\
+        fadeSlider.min = '50';\
         fadeSlider.max = '500';\
         fadeSlider.value = '500';\
         fadeSlider.id = 'fade-slider';\
@@ -308,7 +308,7 @@ void handleSetBrightness() {
 void loop() {
   server.handleClient();
   ArduinoOTA.handle();
-  if (run_rainbow && (millis() - lastTime > fade)) {
+  if (run_rainbow && (millis() - lastTime > fade - 40)) {
     lastTime = millis();
     if (j < 256) {
       if (i < strip.numPixels()) {
